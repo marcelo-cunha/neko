@@ -1,6 +1,8 @@
 package message
 
 import (
+	"time"
+
 	"github.com/m1k1o/neko/server/internal/http/legacy/types"
 
 	"github.com/pion/webrtc/v3"
@@ -91,10 +93,17 @@ type ChatReceive struct {
 	Content string `json:"content"`
 }
 
+type ChatInit struct {
+	Event   string     `json:"event"`
+	Enabled bool       `json:"enabled"`
+	History []ChatSend `json:"history"`
+}
+
 type ChatSend struct {
-	Event   string `json:"event"`
-	ID      string `json:"id"`
-	Content string `json:"content"`
+	Event   string    `json:"event"`
+	ID      string    `json:"id"`
+	Content string    `json:"content"`
+	Created time.Time `json:"created"`
 }
 
 type EmoteReceive struct {

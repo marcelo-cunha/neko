@@ -343,7 +343,7 @@
 
 <script lang="ts">
   import { Component, Ref, Watch, Vue } from 'vue-property-decorator'
-  import { formatRelative } from 'date-fns'
+  import { formatRelative, parseISO } from 'date-fns'
 
   import { Member } from '~/neko/types'
 
@@ -404,11 +404,16 @@
     }
 
     member(id: string) {
-      return this.$accessor.user.members[id] || { id, displayname: this.$t('somebody') }
+      // Try to get the member from the store, if not found extract username from session ID
+      // Session ID format is: username-randomSuffix
+      const displayname = id.includes('-') ? id.substring(0, id.lastIndexOf('-')) : id
+      return this.$accessor.user.members[id] || { id, displayname }
     }
 
-    timestamp(time: Date) {
-      const str = formatRelative(time, new Date())
+    timestamp(time: Date | string) {
+      const dateObj = typeof time === 'string' ? parseISO(time) : time
+
+      const str = formatRelative(dateObj, new Date())
       return `${str.charAt(0).toUpperCase()}${str.slice(1)}`
     }
 

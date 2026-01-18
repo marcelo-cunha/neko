@@ -34,6 +34,7 @@ const (
 )
 
 const (
+	CHAT_INIT    = "chat/init"
 	CHAT_MESSAGE = "chat/message"
 	CHAT_EMOTE   = "chat/emote"
 )
