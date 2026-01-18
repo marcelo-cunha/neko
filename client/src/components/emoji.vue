@@ -1,58 +1,109 @@
 <template>
   <div class="neko-emoji" v-on-clickaway="onClickAway">
+    <div class="tabs">
+      <button :class="{ active: activeTab === 'emoji' }" @click="activeTab = 'emoji'">Emoji</button>
+      <button :class="{ active: activeTab === '7tv' }" @click="activeTab = '7tv'">7TV</button>
+    </div>
     <div class="search">
       <div class="search-contianer">
         <input type="text" ref="search" v-model="search" />
       </div>
     </div>
-    <div class="list" ref="scroll" @scroll="onScroll">
-      <ul :class="['group-list']" :style="{ display: search === '' ? 'flex' : 'none' }">
-        <li v-for="(group, index) in groups" :key="index" class="group" ref="groups">
-          <span class="label">{{ group.name }}</span>
-          <ul class="emoji-list">
+    <!-- Emoji Tab -->
+    <template v-if="activeTab === 'emoji'">
+      <div class="list" ref="scroll" @scroll="onScroll">
+        <ul :class="['group-list']" :style="{ display: search === '' ? 'flex' : 'none' }">
+          <li v-for="(group, index) in groups" :key="index" class="group" ref="groups">
+            <span class="label">{{ group.name }}</span>
+            <ul class="emoji-list">
+              <li
+                v-for="emoji in index === 0 ? recent : group.list"
+                :key="`${group.id}-${emoji}`"
+                :class="['emoji-container', hovered === emoji ? 'active' : '']"
+              >
+                <span
+                  :class="['emoji']"
+                  @mouseenter.stop.prevent="onMouseEnter($event, emoji)"
+                  @click.stop.prevent="onClick($event, emoji)"
+                  :data-emoji="emoji"
+                ></span>
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <ul :class="['emoji-container']" :style="{ display: search === '' ? 'none' : 'flex' }">
+          <li v-for="emoji in filtered" :key="emoji" :class="['emoji-item', hovered === emoji ? 'active' : '']">
+            <span
+              :class="['emoji']"
+              @mouseenter.stop.prevent="onMouseEnter($event, emoji)"
+              @click.stop.prevent="onClick($event, emoji)"
+              :data-emoji="emoji"
+            ></span>
+          </li>
+        </ul>
+      </div>
+      <div class="details">
+        <div class="details-container" v-if="hovered !== ''">
+          <span :class="['emoji']" :data-emoji="hovered" /><span class="emoji-id">:{{ hovered }}:</span>
+        </div>
+      </div>
+      <div class="groups">
+        <ul>
+          <li
+            v-for="(group, index) in groups"
+            :key="index"
+            :class="[group.id, active.id === group.id && search === '' ? 'active' : '']"
+            @click.stop.prevent="scrollTo($event, index)"
+          >
+            <span :class="[`group-${group.id} fas`]" />
+          </li>
+        </ul>
+      </div>
+    </template>
+    <!-- 7TV Tab -->
+    <template v-if="activeTab === '7tv'">
+      <div class="list seventv-list" ref="seventvScroll" @scroll="onSevenTVScroll">
+        <!-- Recentes -->
+        <div v-show="recentSevenTV.length > 0 && search === ''" class="seventv-group">
+          <span class="label">Recent</span>
+          <ul class="seventv-emote-list">
             <li
-              v-for="emoji in index === 0 ? recent : group.list"
-              :key="`${group.id}-${emoji}`"
-              :class="['emoji-container', hovered === emoji ? 'active' : '']"
+              v-for="emote in recentSevenTV"
+              :key="'recent-' + emote.name"
+              :class="['seventv-emote-container', hoveredSevenTV === emote.name ? 'active' : '']"
+              @mouseenter.stop.prevent="onSevenTVMouseEnter($event, emote)"
+              @click.stop.prevent="onSevenTVClick($event, emote)"
             >
-              <span
-                :class="['emoji']"
-                @mouseenter.stop.prevent="onMouseEnter($event, emoji)"
-                @click.stop.prevent="onClick($event, emoji)"
-                :data-emoji="emoji"
-              ></span>
+              <img :src="emote.url" :alt="emote.name" :title="emote.name" loading="lazy" />
             </li>
           </ul>
-        </li>
-      </ul>
-      <ul :class="['emoji-container']" :style="{ display: search === '' ? 'none' : 'flex' }">
-        <li v-for="emoji in filtered" :key="emoji" :class="['emoji-item', hovered === emoji ? 'active' : '']">
-          <span
-            :class="['emoji']"
-            @mouseenter.stop.prevent="onMouseEnter($event, emoji)"
-            @click.stop.prevent="onClick($event, emoji)"
-            :data-emoji="emoji"
-          ></span>
-        </li>
-      </ul>
-    </div>
-    <div class="details">
-      <div class="details-container" v-if="hovered !== ''">
-        <span :class="['emoji']" :data-emoji="hovered" /><span class="emoji-id">:{{ hovered }}:</span>
+        </div>
+        <!-- Todos os emotes -->
+        <div class="seventv-group">
+          <span class="label" v-show="search === ''">All Emotes</span>
+          <ul class="seventv-emote-list">
+            <li
+              v-for="(emote, idx) in seventvEmotes"
+              :key="emote.name"
+              v-show="isSevenTVEmoteVisible(emote, idx)"
+              :class="['seventv-emote-container', hoveredSevenTV === emote.name ? 'active' : '']"
+              @mouseenter.stop.prevent="onSevenTVMouseEnter($event, emote)"
+              @click.stop.prevent="onSevenTVClick($event, emote)"
+            >
+              <img v-if="idx < seventvLoadedCount" :src="emote.url" :alt="emote.name" :title="emote.name" loading="lazy" />
+            </li>
+          </ul>
+          <div v-if="search === '' && seventvLoadedCount < seventvEmotes.length" class="load-more">
+            Loading more...
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="groups">
-      <ul>
-        <li
-          v-for="(group, index) in groups"
-          :key="index"
-          :class="[group.id, active.id === group.id && search === '' ? 'active' : '']"
-          @click.stop.prevent="scrollTo($event, index)"
-        >
-          <span :class="[`group-${group.id} fas`]" />
-        </li>
-      </ul>
-    </div>
+      <div class="details">
+        <div class="details-container" v-if="hoveredSevenTV !== ''">
+          <img :src="hoveredSevenTVUrl" class="seventv-preview" /><span class="emoji-id">{{ hoveredSevenTV }}</span>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -72,6 +123,34 @@
     border-radius: 5px;
     overflow: hidden;
     box-shadow: $elevation-high;
+
+    .tabs {
+      display: flex;
+      flex-shrink: 0;
+      border-bottom: 1px solid $background-tertiary;
+
+      button {
+        flex: 1;
+        padding: 8px;
+        background: transparent;
+        border: none;
+        color: $text-muted;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 12px;
+        text-transform: uppercase;
+        transition: all 0.2s;
+
+        &:hover {
+          background: $background-tertiary;
+        }
+
+        &.active {
+          color: $text-normal;
+          border-bottom: 2px solid $style-primary;
+        }
+      }
+    }
 
     .search {
       flex-shrink: 0;
@@ -180,6 +259,59 @@
           }
         }
       }
+
+      &.seventv-list {
+        .seventv-group {
+          margin-bottom: 10px;
+
+          .label {
+            z-index: 2;
+            text-transform: uppercase;
+            font-weight: 500;
+            font-size: 12px;
+            position: sticky;
+            top: -5px;
+            background-color: rgba($color: $background-secondary, $alpha: 0.9);
+            width: 100%;
+            display: block;
+            padding: 8px 0;
+          }
+        }
+
+        .seventv-emote-list {
+          display: flex;
+          flex-direction: row;
+          flex-wrap: wrap;
+          gap: 4px;
+
+          .seventv-emote-container {
+            padding: 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &.active {
+              background-color: $background-floating;
+            }
+
+            img {
+              height: 28px;
+              width: auto;
+              max-width: 56px;
+              object-fit: contain;
+            }
+          }
+        }
+
+        .load-more {
+          text-align: center;
+          padding: 10px;
+          color: $text-muted;
+          font-size: 12px;
+        }
+      }
     }
 
     .details {
@@ -209,6 +341,12 @@
             font-size: 16px;
             font-weight: 500;
           }
+        }
+
+        .seventv-preview {
+          height: 20px;
+          width: auto;
+          margin: 0 5px 0 10px;
         }
       }
     }
@@ -289,7 +427,8 @@
 <script lang="ts">
   import { Component, Ref, Vue } from 'vue-property-decorator'
   import { directive as onClickaway } from 'vue-clickaway'
-  import { get } from '../utils/localstorage'
+  import { get, set } from '../utils/localstorage'
+  import { SevenTVEmote } from '../utils/emotes'
 
   @Component({
     name: 'neko-emoji',
@@ -301,12 +440,19 @@
     @Ref('scroll') readonly _scroll!: HTMLElement
     @Ref('search') readonly _search!: HTMLInputElement
     @Ref('groups') readonly _groups!: HTMLElement[]
+    @Ref('seventvScroll') readonly _seventvScroll!: HTMLElement
 
     waitingForPaint = false
     search = ''
     index = 0
     hovered = ''
     recent: string[] = JSON.parse(get('emoji_recent', '[]'))
+    recentSevenTV: SevenTVEmote[] = JSON.parse(get('seventv_recent', '[]'))
+    activeTab: 'emoji' | '7tv' = '7tv'
+    hoveredSevenTV = ''
+    hoveredSevenTVUrl = ''
+    seventvLoadedCount = 50 // Começa carregando 50 emotes
+    seventvSearchCache: { [key: string]: boolean } = {} // Cache para busca
 
     get active() {
       return this.$accessor.emoji.groups[this.index]
@@ -322,6 +468,35 @@
 
     get list() {
       return this.$accessor.emoji.list
+    }
+
+    get seventvEmotes() {
+      return this.$accessor.emoji.seventv
+    }
+
+    // Verifica se o emote deve estar visível (baseado na busca)
+    isSevenTVEmoteVisible(emote: SevenTVEmote, idx: number): boolean {
+      if (this.search === '') {
+        return idx < this.seventvLoadedCount
+      }
+      const searchLower = this.search.toLowerCase()
+      return emote.name.toLowerCase().includes(searchLower)
+    }
+
+    // Carrega mais emotes conforme scroll
+    onSevenTVScroll() {
+      if (!this._seventvScroll || this.search !== '') return
+      
+      const { scrollTop, scrollHeight, clientHeight } = this._seventvScroll
+      // Se está perto do final (100px), carrega mais
+      if (scrollTop + clientHeight >= scrollHeight - 100) {
+        if (this.seventvLoadedCount < this.seventvEmotes.length) {
+          this.seventvLoadedCount = Math.min(
+            this.seventvLoadedCount + 50,
+            this.seventvEmotes.length
+          )
+        }
+      }
     }
 
     get filtered() {
@@ -380,6 +555,29 @@
     onClick(event: MouseEvent, emoji: string) {
       this.$accessor.emoji.setRecent(emoji)
       this.$emit('picked', emoji)
+    }
+
+    onSevenTVMouseEnter(event: MouseEvent, emote: SevenTVEmote) {
+      this.hoveredSevenTV = emote.name
+      this.hoveredSevenTVUrl = emote.url
+      this._search.placeholder = emote.name
+    }
+
+    onSevenTVClick(event: MouseEvent, emote: SevenTVEmote) {
+      // Adicionar aos recentes do 7TV
+      const existingIndex = this.recentSevenTV.findIndex(e => e.name === emote.name)
+      if (existingIndex !== -1) {
+        this.recentSevenTV.splice(existingIndex, 1)
+      }
+      this.recentSevenTV.unshift(emote)
+      if (this.recentSevenTV.length > 30) {
+        this.recentSevenTV.pop()
+      }
+      set('seventv_recent', JSON.stringify(this.recentSevenTV))
+      // Limpar hover ao selecionar
+      this.hoveredSevenTV = ''
+      this.hoveredSevenTVUrl = ''
+      this.$emit('picked-seventv', emote.name)
     }
 
     onClickAway() {

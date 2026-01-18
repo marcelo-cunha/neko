@@ -43,7 +43,7 @@
       <div class="accent" />
       <div class="text-container">
         <textarea ref="input" :placeholder="$t('send_a_message')" @keydown="onKeyDown" v-model="content" />
-        <neko-emoji v-if="emoji" @picked="onEmojiPicked" @done="emoji = false" />
+        <neko-emoji v-show="emoji" @picked="onEmojiPicked" @picked-seventv="onSevenTVPicked" @done="emoji = false" />
         <i class="emoji-menu fas fa-laugh" @click.stop.prevent="onEmoji"></i>
       </div>
     </div>
@@ -442,6 +442,28 @@
         })
       } else {
         this.content += text
+      }
+      this._input.focus()
+      this.emoji = false
+    }
+
+    onSevenTVPicked(emoteName: string) {
+      // Para emotes 7TV, não usa :colons:, apenas o nome
+      const text = emoteName
+      if (this._input.selectionStart || this._input.selectionStart === 0) {
+        var startPos = this._input.selectionStart
+        var endPos = this._input.selectionEnd
+        // Adiciona espaço antes se necessário
+        const needsSpaceBefore = startPos > 0 && this.content[startPos - 1] !== ' '
+        const prefix = needsSpaceBefore ? ' ' : ''
+        this.content = this.content.substring(0, startPos) + prefix + text + ' ' + this.content.substring(endPos, this.content.length)
+        this.$nextTick(() => {
+          const newPos = startPos + prefix.length + text.length + 1
+          this._input.selectionStart = newPos
+          this._input.selectionEnd = newPos
+        })
+      } else {
+        this.content += (this.content.length > 0 && this.content[this.content.length - 1] !== ' ' ? ' ' : '') + text + ' '
       }
       this._input.focus()
       this.emoji = false

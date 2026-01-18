@@ -1,6 +1,7 @@
 import { getterTree, mutationTree, actionTree } from 'typed-vuex'
 import { get, set } from '~/utils/localstorage'
 import { accessor } from '~/store'
+import { emoteService, SevenTVEmote } from '~/utils/emotes'
 
 export const namespaced = true
 
@@ -8,6 +9,12 @@ interface Group {
   name: string
   id: string
   list: string[]
+}
+
+interface SevenTVGroup {
+  name: string
+  id: string
+  list: SevenTVEmote[]
 }
 
 interface Keywords {
@@ -30,6 +37,7 @@ export const state = () => ({
   ] as Group[],
   keywords: {} as Keywords,
   list: [] as string[],
+  seventv: [] as SevenTVEmote[],
 })
 
 export const getters = getterTree(state, {})
@@ -53,6 +61,9 @@ export const mutations = mutationTree(state, {
   setList(state, list: string[]) {
     state.list = list
   },
+  setSevenTV(state, emotes: SevenTVEmote[]) {
+    state.seventv = emotes
+  },
 })
 
 export const actions = actionTree(
@@ -69,6 +80,16 @@ export const actions = actionTree(
       } catch (err: any) {
         console.error(err)
       }
+
+      // Carregar emotes do 7TV (aguarda até estar pronto)
+      const checkSevenTV = () => {
+        if (emoteService.isReady()) {
+          accessor.emoji.setSevenTV(emoteService.getEmotes())
+        } else {
+          setTimeout(checkSevenTV, 500)
+        }
+      }
+      checkSevenTV()
     },
   },
 )

@@ -1,6 +1,11 @@
 import TwitchEmoticons from '@mkody/twitch-emoticons'
 const { EmoteFetcher, EmoteParser } = TwitchEmoticons
 
+export interface SevenTVEmote {
+  name: string
+  url: string
+}
+
 class EmoteService {
   private fetcher: InstanceType<typeof EmoteFetcher>
   private parser: InstanceType<typeof EmoteParser> | null = null
@@ -22,10 +27,10 @@ class EmoteService {
       await this.fetcher.fetchSevenTVEmotes(58115154)
 
       // Criar o parser com template HTML customizado
-      // Match: qualquer palavra (sem :colons:)
+      // Match: qualquer sequência de caracteres não-espaço (aceita :3, eu??, etc)
       this.parser = new EmoteParser(this.fetcher, {
         template: '<img class="seventv-emote" alt="{name}" title="{name}" src="{link}">',
-        match: /(\w{2,})/g,
+        match: /(\S+)/g,
       })
 
       this.initialized = true
@@ -52,6 +57,25 @@ class EmoteService {
 
   isReady(): boolean {
     return this.initialized
+  }
+
+  getEmotes(): SevenTVEmote[] {
+    if (!this.initialized) {
+      return []
+    }
+
+    const emotes: SevenTVEmote[] = []
+    this.fetcher.emotes.forEach((emote: any) => {
+      // Só pegar emotes do 7TV
+      if (emote.type === '7tv') {
+        emotes.push({
+          name: emote.code,
+          url: emote.toLink(),
+        })
+      }
+    })
+
+    return emotes.sort((a, b) => a.name.localeCompare(b.name))
   }
 }
 
