@@ -1,5 +1,6 @@
 import md, { SingleNodeParserRule, HtmlOutputRule, defaultRules, State, Rules } from 'simple-markdown'
 import { Component, Vue, Prop } from 'vue-property-decorator'
+import { emoteService } from '~/utils/emotes'
 
 const { blockQuote, inlineCode, codeBlock, autolink, newline, escape, strong, text, link, url, em, u, br } =
   defaultRules
@@ -264,6 +265,10 @@ export default class extends Vue {
       escapeHTML: true,
       cssModuleNames: null,
     }
-    return h({ template: `<div>${htmlOutput(parser(this.source, state), state)}</div>` })
+    // Primeiro aplica o parser do simple-markdown
+    let output = htmlOutput(parser(this.source, state), state)
+    // Depois aplica os emotes do 7TV no resultado
+    output = emoteService.parse(output)
+    return h({ template: `<div>${output}</div>` })
   }
 }

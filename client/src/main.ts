@@ -13,6 +13,7 @@ import Anime from './plugins/anime'
 import { i18n } from './plugins/i18n'
 import store from './store'
 import app from './app.vue'
+import { emoteService } from './utils/emotes'
 
 Vue.config.productionTip = false
 
@@ -23,6 +24,9 @@ Vue.use(Axios)
 Vue.use(Swal)
 Vue.use(Anime)
 Vue.use(Client)
+
+// Inicializar emotes do 7TV
+emoteService.init()
 
 new Vue({
   i18n,

@@ -175,6 +175,14 @@
                 padding-left: 3px;
               }
 
+              .seventv-emote {
+                display: inline-block;
+                vertical-align: middle;
+                height: 2.0em;
+                width: auto;
+                margin: -0.2em 0.1em;
+              }
+
               span {
                 &.spoiler {
                   background: $background-tertiary;
