@@ -427,7 +427,6 @@
 
     onEmoji() {
       this.emoji = !this.emoji
-      this._input.focus()
     }
 
     onEmojiPicked(emoji: string) {

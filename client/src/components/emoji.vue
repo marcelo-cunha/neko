@@ -78,14 +78,33 @@
             </li>
           </ul>
         </div>
-        <!-- Todos os emotes -->
-        <div class="seventv-group">
-          <span class="label" v-show="search === ''">All Emotes</span>
+        <!-- Resultados da busca -->
+        <div v-if="search !== ''" class="seventv-group">
+          <span class="label">Search Results</span>
+          <ul class="seventv-emote-list">
+            <li
+              v-for="(emote, idx) in filteredSevenTV"
+              :key="'search-' + emote.name"
+              :class="['seventv-emote-container', hoveredSevenTV === emote.name ? 'active' : '']"
+              @mouseenter.stop.prevent="onSevenTVMouseEnter($event, emote)"
+              @click.stop.prevent="onSevenTVClick($event, emote)"
+            >
+              <img v-if="idx < seventvSearchLoadedCount" :src="emote.url" :alt="emote.name" :title="emote.name" loading="lazy" />
+              <span v-else class="emote-placeholder"></span>
+            </li>
+          </ul>
+          <div v-if="seventvSearchLoadedCount < filteredSevenTV.length" class="load-more">
+            Loading more...
+          </div>
+        </div>
+        <!-- Todos os emotes (sem busca) -->
+        <div v-show="search === ''" class="seventv-group">
+          <span class="label">All Emotes</span>
           <ul class="seventv-emote-list">
             <li
               v-for="(emote, idx) in seventvEmotes"
               :key="emote.name"
-              v-show="isSevenTVEmoteVisible(emote, idx)"
+              v-show="idx < seventvLoadedCount"
               :class="['seventv-emote-container', hoveredSevenTV === emote.name ? 'active' : '']"
               @mouseenter.stop.prevent="onSevenTVMouseEnter($event, emote)"
               @click.stop.prevent="onSevenTVClick($event, emote)"
@@ -93,7 +112,7 @@
               <img v-if="idx < seventvLoadedCount" :src="emote.url" :alt="emote.name" :title="emote.name" loading="lazy" />
             </li>
           </ul>
-          <div v-if="search === '' && seventvLoadedCount < seventvEmotes.length" class="load-more">
+          <div v-if="seventvLoadedCount < seventvEmotes.length" class="load-more">
             Loading more...
           </div>
         </div>
@@ -302,6 +321,13 @@
               max-width: 56px;
               object-fit: contain;
             }
+
+            .emote-placeholder {
+              width: 28px;
+              height: 28px;
+              background-color: $background-tertiary;
+              border-radius: 4px;
+            }
           }
         }
 
@@ -425,7 +451,7 @@
 </style>
 
 <script lang="ts">
-  import { Component, Ref, Vue } from 'vue-property-decorator'
+  import { Component, Ref, Watch, Vue } from 'vue-property-decorator'
   import { directive as onClickaway } from 'vue-clickaway'
   import { get, set } from '../utils/localstorage'
   import { SevenTVEmote } from '../utils/emotes'
@@ -452,7 +478,13 @@
     hoveredSevenTV = ''
     hoveredSevenTVUrl = ''
     seventvLoadedCount = 50 // Começa carregando 50 emotes
-    seventvSearchCache: { [key: string]: boolean } = {} // Cache para busca
+    seventvSearchLoadedCount = 50 // Contador separado para resultados de busca
+
+    // Reseta contador de busca quando a busca muda
+    @Watch('search')
+    onSearchChange() {
+      this.seventvSearchLoadedCount = 50
+    }
 
     get active() {
       return this.$accessor.emoji.groups[this.index]
@@ -474,27 +506,40 @@
       return this.$accessor.emoji.seventv
     }
 
-    // Verifica se o emote deve estar visível (baseado na busca)
-    isSevenTVEmoteVisible(emote: SevenTVEmote, idx: number): boolean {
+    // Filtra emotes por busca (busca em TODOS os emotes)
+    get filteredSevenTV() {
       if (this.search === '') {
-        return idx < this.seventvLoadedCount
+        return []
       }
       const searchLower = this.search.toLowerCase()
-      return emote.name.toLowerCase().includes(searchLower)
+      return this.seventvEmotes.filter((emote: SevenTVEmote) =>
+        emote.name.toLowerCase().includes(searchLower)
+      )
     }
 
     // Carrega mais emotes conforme scroll
     onSevenTVScroll() {
-      if (!this._seventvScroll || this.search !== '') return
+      if (!this._seventvScroll) return
       
       const { scrollTop, scrollHeight, clientHeight } = this._seventvScroll
       // Se está perto do final (100px), carrega mais
       if (scrollTop + clientHeight >= scrollHeight - 100) {
-        if (this.seventvLoadedCount < this.seventvEmotes.length) {
-          this.seventvLoadedCount = Math.min(
-            this.seventvLoadedCount + 50,
-            this.seventvEmotes.length
-          )
+        if (this.search !== '') {
+          // Carregando mais resultados de busca
+          if (this.seventvSearchLoadedCount < this.filteredSevenTV.length) {
+            this.seventvSearchLoadedCount = Math.min(
+              this.seventvSearchLoadedCount + 50,
+              this.filteredSevenTV.length
+            )
+          }
+        } else {
+          // Carregando mais emotes normais
+          if (this.seventvLoadedCount < this.seventvEmotes.length) {
+            this.seventvLoadedCount = Math.min(
+              this.seventvLoadedCount + 50,
+              this.seventvEmotes.length
+            )
+          }
         }
       }
     }
