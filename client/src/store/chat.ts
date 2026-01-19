@@ -18,6 +18,7 @@ interface Message {
   content: string
   created: Date | string
   type: 'text' | 'event'
+  silent?: boolean // Não toca som (usado para mensagens do histórico)
 }
 
 export const state = () => ({
@@ -74,7 +75,7 @@ export const actions = actionTree(
     },
 
     newMessage(store, message: Message) {
-      if (accessor.settings.chat_sound) {
+      if (accessor.settings.chat_sound && !message.silent) {
         new Audio('chat.mp3').play().catch(console.error)
       }
       accessor.chat.addMessage(message)

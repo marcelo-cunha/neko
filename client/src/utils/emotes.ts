@@ -11,6 +11,8 @@ class EmoteService {
   private parser: InstanceType<typeof EmoteParser> | null = null
   private initialized = false
   private initializing = false
+  private initPromise: Promise<void> | null = null
+  private onReadyCallbacks: (() => void)[] = []
 
   constructor() {
     // Não precisa de credenciais do Twitch para usar apenas 7TV
@@ -18,10 +20,15 @@ class EmoteService {
   }
 
   async init(): Promise<void> {
-    if (this.initialized || this.initializing) return
+    if (this.initialized) return
+    if (this.initPromise) return this.initPromise
 
     this.initializing = true
+    this.initPromise = this._doInit()
+    return this.initPromise
+  }
 
+  private async _doInit(): Promise<void> {
     try {
       // Buscar apenas emotes globais do 7TV
       await this.fetcher.fetchSevenTVEmotes(58115154)
@@ -35,10 +42,24 @@ class EmoteService {
 
       this.initialized = true
       console.log('[7TV] Emotes carregados:', this.fetcher.emotes.size)
+      
+      // Notificar callbacks registrados
+      this.onReadyCallbacks.forEach(cb => cb())
+      this.onReadyCallbacks = []
     } catch (error) {
       console.error('[7TV] Erro ao carregar emotes:', error)
+      this.initPromise = null // Permite tentar novamente
     } finally {
       this.initializing = false
+    }
+  }
+
+  // Registra callback para quando os emotes estiverem prontos
+  onReady(callback: () => void): void {
+    if (this.initialized) {
+      callback()
+    } else {
+      this.onReadyCallbacks.push(callback)
     }
   }
 

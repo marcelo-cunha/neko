@@ -258,7 +258,15 @@ export default class extends Vue {
   @Prop({ required: true })
   source!: string
 
+  // Acessa o store para criar reatividade - quando seventv mudar, re-renderiza
+  get seventvReady() {
+    return this.$accessor.emoji.seventv.length > 0
+  }
+
   render(h: any) {
+    // Força dependência reativa no seventvReady
+    const _ = this.seventvReady
+
     const state: MarkdownState = {
       inline: true,
       inQuote: false,

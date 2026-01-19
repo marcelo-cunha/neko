@@ -346,6 +346,7 @@ export class NekoClient extends BaseClient implements EventEmitter<NekoEvents> {
           content: message.content,
           type: 'text',
           created: message.created,
+          silent: true, // Não toca som para mensagens do histórico
         })
       }
     }

@@ -81,15 +81,10 @@ export const actions = actionTree(
         console.error(err)
       }
 
-      // Carregar emotes do 7TV (aguarda até estar pronto)
-      const checkSevenTV = () => {
-        if (emoteService.isReady()) {
-          accessor.emoji.setSevenTV(emoteService.getEmotes())
-        } else {
-          setTimeout(checkSevenTV, 500)
-        }
-      }
-      checkSevenTV()
+      // Carregar emotes do 7TV quando estiverem prontos
+      emoteService.onReady(() => {
+        accessor.emoji.setSevenTV(emoteService.getEmotes())
+      })
     },
   },
 )
